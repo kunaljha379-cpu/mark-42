@@ -1,0 +1,9 @@
+# solid menus, soft shadows
+[Style]
+MenuOpacity=100
+
+[Common]
+OutlineIntensity=OutlineLow
+ShadowSize=ShadowMedium
+ShadowStrength=230
+ShadowColor=0,0,0

@@ -1,0 +1,11 @@
+[Unit]
+Description=MARK 42: smooth mouse in virtual machines
+After=live-config.service local-fs.target
+Before=display-manager.service sddm.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/mark42-vm-tune
+
+[Install]
+WantedBy=multi-user.target

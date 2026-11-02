@@ -1,0 +1,11 @@
+configuration {
+    modi: "drun,run,window";
+    show-icons: true;
+    icon-theme: "breeze-dark";
+    display-drun: "APPS";
+    display-run: "RUN";
+    display-window: "WINDOWS";
+    drun-display-format: "{name}";
+    font: "Inter 11";
+}
+@theme "mark42"

@@ -1,0 +1,22 @@
+# MARK 42 window manager defaults
+[org.kde.kdecoration2]
+library=org.kde.breeze
+theme=Breeze
+BorderSize=None
+BorderSizeAuto=false
+ButtonsOnLeft=
+ButtonsOnRight=IAX
+
+[Plugins]
+blurEnabled=true
+contrastEnabled=true
+magiclampEnabled=false
+squashEnabled=true
+wobblywindowsEnabled=false
+
+[Effect-blur]
+BlurStrength=6
+NoiseStrength=0
+
+[Windows]
+BorderlessMaximizedWindows=false

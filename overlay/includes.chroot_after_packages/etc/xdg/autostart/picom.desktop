@@ -1,0 +1,7 @@
+[Desktop Entry]
+# MARK 42: picom is only for the i3 session (i3 starts it itself).
+# Running it next to KWin in Plasma means two compositors fighting = lag.
+Type=Application
+Name=picom
+Exec=picom
+Hidden=true

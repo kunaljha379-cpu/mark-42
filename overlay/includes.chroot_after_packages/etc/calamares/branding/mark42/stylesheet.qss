@@ -1,0 +1,13 @@
+/* MARK 42 installer: black & red */
+QWidget { background-color: #0c0c0c; color: #ececec; }
+QPushButton { background-color: #1a1e25; border: 1px solid #2f3540; padding: 6px 14px; border-radius: 4px; }
+QPushButton:hover { border-color: #3d96f0; }
+QPushButton:pressed, QPushButton:checked { background-color: #24609f; }
+QPushButton:default { background-color: #2f7fd6; color: #ffffff; }
+QLineEdit, QComboBox, QListView, QTreeView, QTextEdit, QPlainTextEdit {
+  background-color: #14181e; border: 1px solid #2f3540; selection-background-color: #3d96f0; }
+QLineEdit:focus, QComboBox:focus { border-color: #3d96f0; }
+QProgressBar { background-color: #232831; border: none; color: #ffffff; text-align: center; }
+QProgressBar::chunk { background-color: #3d96f0; }
+QRadioButton::indicator:checked, QCheckBox::indicator:checked { background-color: #3d96f0; border: 1px solid #64b4ff; }
+#sidebarApp, #sidebarMenuApp { background-color: #070101; }

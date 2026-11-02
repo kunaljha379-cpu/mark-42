@@ -1,0 +1,9 @@
+#!/bin/sh
+# MARK 42: give the live user zsh (runs right after live-config creates the user)
+. /etc/live/config.conf.d/mark42.conf 2>/dev/null
+U="${LIVE_USERNAME:-mark}"
+if grep -q "^${U}:" /etc/passwd && [ -x /bin/zsh ]; then
+  usermod -s /bin/zsh "$U"
+  H=$(getent passwd "$U" | cut -d: -f6)
+  [ -f "$H/.zshrc" ] || { cp /etc/skel/.zshrc "$H/.zshrc" && chown "$U": "$H/.zshrc"; }
+fi

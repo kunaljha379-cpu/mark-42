@@ -1,0 +1,26 @@
+# MARK 42 status bar
+general {
+    colors = true
+    color_good = "#64b4ff"
+    color_degraded = "#ffaf00"
+    color_bad = "#ff0000"
+    interval = 2
+    separator = " ┃ "
+}
+order += "wireless _first_"
+order += "ethernet _first_"
+order += "cpu_usage"
+order += "memory"
+order += "disk /"
+order += "volume master"
+order += "battery all"
+order += "tztime local"
+
+wireless _first_ { format_up = "WIFI %quality %essid" format_down = "" }
+ethernet _first_ { format_up = "LAN %ip" format_down = "" }
+cpu_usage       { format = "CPU %usage" }
+memory          { format = "RAM %used" threshold_degraded = "1G" }
+disk "/"        { format = "DISK %avail" }
+volume master   { format = "VOL %volume" format_muted = "VOL muted" device = "pulse" }
+battery all     { format = "%status %percentage" format_down = "" last_full_capacity = true integer_battery_capacity = true }
+tztime local    { format = "%a %d %b  %H:%M" }

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Start (or restart) the MARK 42 HUD.  "mark42-conky off" stops it.
+pkill -x conky 2>/dev/null
+[ "$1" = "off" ] && exit 0
+CFG="$HOME/.config/conky/mark42.conf"
+[ -f "$CFG" ] || CFG=/etc/skel/.config/conky/mark42.conf
+sleep 3
+exec conky -d -q -c "$CFG"

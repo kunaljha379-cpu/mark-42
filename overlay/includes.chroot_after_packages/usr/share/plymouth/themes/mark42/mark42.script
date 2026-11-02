@@ -1,0 +1,194 @@
+# MARK 42 — Plymouth boot animation
+# Clean v1.2: blue and white arc reactor on black, two slowly
+# counter-rotating rings, a segmented progress circle and a softly breathing core. Also handles disk-encryption password
+# prompts and boot messages.
+
+Window.SetBackgroundTopColor(0, 0, 0);
+Window.SetBackgroundBottomColor(0, 0, 0);
+
+W  = Window.GetWidth();
+H  = Window.GetHeight();
+X0 = Window.GetX();
+Y0 = Window.GetY();
+D  = Math.Min(W, H) * 0.40;          # base reactor size
+CX = X0 + W / 2;
+CY = Y0 + H * 0.42;
+
+fun load_scaled(file, scale) {
+    img = Image(file);
+    s = Math.Int(D * scale);
+    return img.Scale(s, s);
+}
+
+fun center_sprite(img, z) {
+    sp = Sprite(img);
+    sp.SetX(CX - img.GetWidth() / 2);
+    sp.SetY(CY - img.GetHeight() / 2);
+    sp.SetZ(z);
+    sp.SetOpacity(0);
+    return sp;
+}
+
+# ---------------------------------------------------------------- images
+glow_img  = load_scaled("glow.png",       1.70);
+outer_img = load_scaled("ring_outer.png", 1.08);
+inner_img = load_scaled("ring_inner.png", 0.86);
+logo_img  = load_scaled("logo.png",       0.82);
+for (i = 0; i <= 36; i++)
+    progress_img[i] = load_scaled("progress-" + i + ".png", 1.25);
+
+glow  = center_sprite(glow_img,        1);
+prog  = center_sprite(progress_img[0], 2);
+outer = center_sprite(outer_img,       3);
+inner = center_sprite(inner_img,       4);
+logo  = center_sprite(logo_img,        5);
+
+# title "MARK 42"
+title_raw = Image("title.png");
+TW = Math.Int(D * 1.0);
+TH = Math.Int(TW * title_raw.GetHeight() / title_raw.GetWidth());
+title = Sprite(title_raw.Scale(TW, TH));
+title.SetX(CX - TW / 2);
+title.SetY(CY + D * 0.80);
+title.SetZ(5);
+title.SetOpacity(0);
+
+# subtitle depends on boot / shutdown / reboot
+mode = Plymouth.GetMode();
+if (mode == "shutdown")
+    sub_file = "sub-shutdown.png";
+else if (mode == "reboot")
+    sub_file = "sub-reboot.png";
+else
+    sub_file = "sub-boot.png";
+sub_raw = Image(sub_file);
+SW = Math.Int(D * 0.06 * sub_raw.GetWidth() / sub_raw.GetHeight());
+SH = Math.Int(D * 0.06);
+sub = Sprite(sub_raw.Scale(SW, SH));
+sub.SetX(CX - SW / 2);
+sub.SetY(CY + D * 0.80 + TH + D * 0.07);
+sub.SetZ(5);
+sub.SetOpacity(0);
+
+# ------------------------------------------------------- animation loop
+global.t = 0;
+global.progress_target = 0;
+global.progress_shown = 0;
+global.has_progress = 0;
+global.asking = 0;
+global.quitting = 0;
+global.quit_t = 0;
+
+fun refresh_callback() {
+    global.t++;
+    fade  = Math.Min(global.t / 40, 1);                  # ~0.8 s fade-in
+    pulse = 0.85 + 0.15 * Math.Sin(global.t * 0.06);     # gentle breathing core
+
+    # fade-out when boot finishes and Plymouth hands over to the login screen
+    if (global.quitting) {
+        qf = 1 - (global.t - global.quit_t) / 25;        # ~0.5 s fade-out
+        if (qf < 0) qf = 0;
+        fade = fade * qf;
+    }
+
+    glow.SetOpacity(fade * pulse);
+    logo.SetOpacity(fade * (0.90 + 0.10 * pulse));
+    title.SetOpacity(fade);
+    outer.SetOpacity(fade);
+    inner.SetOpacity(fade);
+    prog.SetOpacity(fade);
+    if (global.asking)
+        sub.SetOpacity(0);
+    else
+        sub.SetOpacity(fade * 0.8);
+
+    outer.SetImage(outer_img.Rotate(-global.t * 0.012));
+    inner.SetImage(inner_img.Rotate( global.t * 0.020));
+
+    if (global.has_progress) {
+        if (global.progress_shown < global.progress_target)
+            global.progress_shown++;
+        idx = global.progress_shown;
+    } else {
+        # no progress info (e.g. shutdown): sweep the circle continuously
+        step = Math.Int(global.t / 2);
+        idx = step - Math.Int(step / 37) * 37;
+    }
+    prog.SetImage(progress_img[idx]);
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+
+# when boot is done, start the fade-out (refresh keeps running during handover)
+fun quit_callback() {
+    global.quitting = 1;
+    global.quit_t = global.t;
+}
+Plymouth.SetQuitFunction(quit_callback);
+
+fun boot_progress_callback(duration, progress) {
+    global.has_progress = 1;
+    global.progress_target = Math.Int(Math.Clamp(progress, 0, 1) * 36);
+}
+Plymouth.SetBootProgressFunction(boot_progress_callback);
+
+# --------------------------------------------- password (encrypted disk)
+entry_raw = Image("entry.png");
+EW = Math.Int(D * 1.1);
+EH = Math.Int(EW * entry_raw.GetHeight() / entry_raw.GetWidth());
+entry = Sprite(entry_raw.Scale(EW, EH));
+EX = CX - EW / 2;
+EY = CY + D * 0.80 + TH + D * 0.05;
+entry.SetPosition(EX, EY, 10);
+entry.SetOpacity(0);
+
+lock = Sprite(Image("lock.png").Scale(EH * 0.6, EH * 0.6));
+lock.SetPosition(EX + EH * 0.25, EY + EH * 0.2, 11);
+lock.SetOpacity(0);
+
+prompt_sprite = Sprite();
+prompt_sprite.SetZ(11);
+
+bullet_img = Image("bullet.png").Scale(EH * 0.32, EH * 0.32);
+MAXB = 24;
+for (i = 0; i < MAXB; i++) {
+    bullets[i] = Sprite(bullet_img);
+    bullets[i].SetPosition(EX + EH * 1.0 + i * EH * 0.38, EY + EH * 0.34, 12);
+    bullets[i].SetOpacity(0);
+}
+
+fun display_password_callback(prompt, count) {
+    global.asking = 1;
+    entry.SetOpacity(1);
+    lock.SetOpacity(1);
+    p = Image.Text(prompt, 0.75, 0.86, 0.96);
+    prompt_sprite.SetImage(p);
+    prompt_sprite.SetPosition(CX - p.GetWidth() / 2, EY - p.GetHeight() - 8, 11);
+    prompt_sprite.SetOpacity(1);
+    for (i = 0; i < MAXB; i++) {
+        if (i < count)
+            bullets[i].SetOpacity(1);
+        else
+            bullets[i].SetOpacity(0);
+    }
+}
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+
+fun display_normal_callback() {
+    global.asking = 0;
+    entry.SetOpacity(0);
+    lock.SetOpacity(0);
+    prompt_sprite.SetOpacity(0);
+    for (i = 0; i < MAXB; i++)
+        bullets[i].SetOpacity(0);
+}
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+
+# ------------------------------------------------------------ messages
+message_sprite = Sprite();
+message_sprite.SetZ(20);
+fun message_callback(text) {
+    m = Image.Text(text, 0.8, 0.8, 0.8);
+    message_sprite.SetImage(m);
+    message_sprite.SetPosition(CX - m.GetWidth() / 2, Y0 + H - m.GetHeight() - 24, 20);
+}
+Plymouth.SetMessageFunction(message_callback);

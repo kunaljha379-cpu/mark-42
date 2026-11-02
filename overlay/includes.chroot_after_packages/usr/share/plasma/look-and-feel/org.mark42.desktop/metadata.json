@@ -1,0 +1,13 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [ { "Name": "MARK 42 Project" } ],
+        "Category": "",
+        "Description": "MARK 42: muted dark red and black, top bar and floating dock",
+        "Id": "org.mark42.desktop",
+        "License": "GPLv2+",
+        "Name": "MARK 42",
+        "Version": "1.0"
+    },
+    "X-Plasma-APIVersion": "2"
+}

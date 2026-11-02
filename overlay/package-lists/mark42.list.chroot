@@ -1,0 +1,205 @@
+# ===== MARK 42 package list (Debian 13 "trixie") =====
+
+# --- core system / live / kernel ---
+live-boot
+live-config
+live-config-systemd
+systemd-sysv
+linux-image-amd64
+linux-headers-amd64
+sudo
+bash-completion
+zsh
+zsh-syntax-highlighting
+locales
+console-setup
+keyboard-configuration
+
+# --- hardware: firmware, microcode, tools (full hardware access) ---
+firmware-linux
+firmware-linux-nonfree
+firmware-misc-nonfree
+firmware-realtek
+firmware-iwlwifi
+firmware-atheros
+firmware-brcm80211
+firmware-libertas
+firmware-intel-sound
+firmware-sof-signed
+firmware-amd-graphics
+intel-microcode
+amd64-microcode
+pciutils
+usbutils
+lshw
+hwinfo
+dmidecode
+inxi
+smartmontools
+nvme-cli
+lm-sensors
+ntfs-3g
+exfatprogs
+dosfstools
+btrfs-progs
+cryptsetup
+build-essential
+dkms
+
+# --- NVIDIA GPU support (driver installed on demand: `mark42-nvidia`) ---
+# The proprietary driver is NOT baked in: Debian's current nvidia 550 does not
+# compile against kernel 6.12.113. The desktop runs on the Intel/AMD iGPU, and
+# `mark42-nvidia` installs + signs the driver on the real machine when wanted.
+# nouveau (open driver) drives the discrete GPU until then.
+firmware-nvidia-gsp
+switcheroo-control
+mokutil
+openssl
+libnotify-bin
+git
+curl
+ca-certificates
+gnupg
+wget
+nano
+vim
+htop
+btop
+fastfetch
+zip
+unzip
+p7zip-full
+
+# --- desktop: KDE Plasma 6 (blur, floating dock, animations) ---
+xorg
+xserver-xorg-video-all
+xserver-xorg-input-all
+x11-xserver-utils
+kde-plasma-desktop
+plasma-workspace
+kwin-x11
+kwin-wayland
+plasma-nm
+plasma-pa
+bluedevil
+powerdevil
+kscreen
+plasma-systemmonitor
+plasma-browser-integration
+xdg-desktop-portal-kde
+polkit-kde-agent-1
+sddm
+sddm-theme-breeze
+kde-config-sddm
+kde-config-gtk-style
+breeze
+breeze-gtk-theme
+breeze-cursor-theme
+kmenuedit
+konsole
+dolphin
+ark
+kwrite
+gwenview
+okular
+kde-spectacle
+kinfocenter
+systemsettings
+partitionmanager
+ffmpegthumbs
+kdegraphics-thumbnailers
+plasma-discover
+plasma-discover-backend-flatpak
+dbus-x11
+network-manager
+network-manager-gnome
+bluetooth
+pipewire
+pipewire-pulse
+pipewire-alsa
+
+# --- JARVIS voice assistant (offline speech) ---
+espeak-ng
+sox
+alsa-utils
+libportaudio2
+python3-venv
+python3-pip
+python3-requests
+wireplumber
+pavucontrol
+firefox-esr
+gparted
+synaptic
+mesa-utils
+spice-vdagent
+
+# --- look & feel ---
+breeze-icon-theme
+fonts-noto-core
+fonts-inter
+fonts-noto-color-emoji
+fonts-dejavu-core
+fonts-hack
+desktop-base
+
+# --- boot animation / bootloader (dual boot) ---
+plymouth
+plymouth-label
+grub-common
+grub-pc-bin
+grub-efi-amd64-bin
+grub-efi-amd64-signed
+shim-signed
+efibootmgr
+os-prober
+
+# --- installer ---
+calamares
+calamares-settings-debian
+
+# --- extra software: Flatpak / Flathub (AUR-like catalog) ---
+flatpak
+
+# --- i3 tiling window manager session (second session on the login screen) ---
+i3-wm
+i3status
+i3lock
+xss-lock
+rofi
+picom
+feh
+
+arandr
+brightnessctl
+playerctl
+xdotool
+
+# --- Conky HUD (i3 session / on demand) ---
+conky-all
+
+# --- performance: compressed RAM swap ---
+zram-tools
+
+# --- daily-use apps ---
+libreoffice-writer
+libreoffice-calc
+libreoffice-impress
+libreoffice-qt6
+timeshift
+vlc
+# controller / VR udev rules for Steam (Steam itself: menu -> "Install Steam", via Flatpak)
+steam-devices
+
+# --- security ---
+ufw
+plasma-firewall
+apparmor
+apparmor-utils
+unattended-upgrades
+apt-listchanges
+kde-config-flatpak
+
+# --- printing (local only; cups-browsed deliberately NOT installed) ---
+cups
+print-manager

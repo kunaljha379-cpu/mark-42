@@ -1,0 +1,139 @@
+#!/bin/bash
+# MARK 42: NVIDIA GPU helper
+#
+#   mark42-nvidia          show status and make the driver work
+#                          (with Secure Boot: sign it with this PC's own key
+#                           and enroll that key - one-time setup)
+#   mark42-nvidia status   only show status
+#   prime-run <app>        run an app on the NVIDIA GPU (hybrid laptops)
+#
+# Why: with Secure Boot on, the firmware only loads kernel modules signed by a
+# key it trusts. The ISO ships WITHOUT a signing key (a shared key would be a
+# security hole), so each installed PC creates its own and enrolls it once.
+
+KEY=/var/lib/dkms/mok.key
+CRT=/var/lib/dkms/mok.pub
+
+blue() { printf '\033[1;34m[MARK 42]\033[0m %s\n' "$*"; }
+red()  { printf '\033[1;31m[MARK 42]\033[0m %s\n' "$*"; }
+
+gpu_name() { lspci -d 10de: 2>/dev/null | grep -iE 'vga|3d|display' | head -1 | cut -d: -f3- | sed 's/^ //'; }
+has_gpu()  { [ -n "$(gpu_name)" ]; }
+loaded()   { [ -e /sys/module/nvidia/version ]; }
+sb_on()    { mokutil --sb-state 2>/dev/null | grep -qi 'SecureBoot enabled'; }
+is_live()  { [ -d /run/live/medium ]; }
+
+status() {
+  if ! has_gpu; then blue "No NVIDIA GPU in this PC - nothing to do."; return 1; fi
+  blue "GPU:         $(gpu_name)"
+  if loaded; then blue "Driver:      working (version $(cat /sys/module/nvidia/version))"
+  else red  "Driver:      not loaded"; fi
+  if sb_on; then blue "Secure Boot: on"; else blue "Secure Boot: off"; fi
+  return 0
+}
+
+# desktop notification at login, only when something needs doing
+check() {
+  is_live && exit 0
+  has_gpu || exit 0
+  loaded && exit 0
+  local msg="Open Konsole and run:  mark42-nvidia"
+  sb_on && msg="Secure Boot needs a one-time setup for the NVIDIA GPU. $msg"
+  notify-send -a "MARK 42" -i video-display "NVIDIA GPU not active" "$msg" 2>/dev/null || true
+  exit 0
+}
+
+# rebuild every installed DKMS module so it gets signed with the current key
+resign() {
+  local line mod kv
+  while read -r line; do
+    mod=${line%%,*}                       # nvidia-current-open/550.163.01
+    kv=$(echo "$line" | cut -d, -f2 | tr -d ' ')
+    [ -n "$mod" ] && [ -n "$kv" ] || continue
+    blue "  rebuilding $mod for kernel $kv"
+    dkms remove "$mod" -k "$kv" >/dev/null 2>&1 || true
+    dkms install "$mod" -k "$kv" || { red "Build failed for $mod ($kv)"; return 1; }
+  done < <(dkms status 2>/dev/null | grep -i ': installed')
+}
+
+driver_installed() { dpkg -l nvidia-driver 2>/dev/null | grep -q '^ii'; }
+
+ensure_driver_installed() {
+  driver_installed && return 0
+  blue "Installing the NVIDIA driver (downloads a few hundred MB, builds the module)..."
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update || true
+  if apt-get install -y nvidia-driver nvidia-open-kernel-dkms nvidia-suspend-common nvidia-settings; then
+    systemctl enable nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service 2>/dev/null || true
+    blue "Driver installed."
+  else
+    red "The NVIDIA driver could not build against this kernel yet."
+    red "This is the known Debian nvidia-550 / kernel-6.12.113 lag, not a MARK 42 fault."
+    red "Your desktop keeps running fine on the Intel GPU. Try again later after:"
+    red "    sudo apt update && sudo apt full-upgrade && sudo reboot"
+    red "then re-run:  mark42-nvidia"
+    exit 1
+  fi
+}
+
+enable() {
+  has_gpu || { blue "No NVIDIA GPU in this PC - nothing to do."; exit 0; }
+  if is_live; then
+    red "This is the live USB. Install MARK 42 to the SSD first, then run mark42-nvidia."
+    exit 1
+  fi
+  ensure_driver_installed
+  if loaded; then blue "NVIDIA driver already works. Nothing to do."; exit 0; fi
+
+  if ! sb_on; then
+    blue "Loading the NVIDIA driver..."
+    if modprobe nvidia-drm; then blue "Done. Reboot once so the desktop picks it up."
+    else red "Could not load it. Details: sudo dmesg | grep -i nvidia"; exit 1; fi
+    exit 0
+  fi
+
+  # --- Secure Boot path ---
+  if [ ! -s "$KEY" ] || [ ! -s "$CRT" ]; then
+    blue "Creating this PC's own driver signing key..."
+    mkdir -p "$(dirname "$KEY")"
+    openssl req -new -x509 -nodes -days 36500 -newkey rsa:2048 \
+      -subj "/CN=MARK 42 DKMS signing key ($(hostname))/" \
+      -keyout "$KEY" -outform DER -out "$CRT" 2>/dev/null \
+      || { red "Key creation failed"; exit 1; }
+    chmod 600 "$KEY"
+    blue "Signing the NVIDIA driver with it (1-3 minutes)..."
+    resign || exit 1
+  fi
+
+  if mokutil --test-key "$CRT" 2>&1 | grep -qi 'already enrolled'; then
+    blue "Key is already enrolled. Reboot and the NVIDIA GPU will work."
+    exit 0
+  fi
+
+  echo
+  blue "Choose a ONE-TIME password now (any simple one, you type it once more after reboot):"
+  mokutil --import "$CRT" || { red "Key enrollment request failed."; exit 1; }
+  cat <<'EOF'
+
+  Now REBOOT. A blue "Perform MOK management" screen appears
+  (it waits only 10 seconds - press a key quickly):
+
+     1. Enroll MOK
+     2. Continue
+     3. Yes
+     4. type the one-time password you just chose
+     5. Reboot
+
+  After that the NVIDIA GPU works, also after future kernel updates.
+EOF
+}
+
+case "${1:-}" in
+  status) status ;;
+  check)  check ;;
+  ""|enable)
+    [ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
+    enable ;;
+  -h|--help|help) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *) red "unknown option: $1  (try: mark42-nvidia help)"; exit 1 ;;
+esac

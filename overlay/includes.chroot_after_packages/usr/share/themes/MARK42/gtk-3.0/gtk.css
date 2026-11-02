@@ -1,0 +1,150 @@
+/* MARK 42 — red & black GTK3 theme
+ * Built on top of GTK's own Adwaita-dark (always present, never breaks),
+ * then every accent is repainted Iron Man red.                            */
+@import url("resource:///org/gtk/libgtk/theme/Adwaita/gtk-contained-dark.css");
+
+@define-color mk_red        #2f7fd6;
+@define-color mk_red_hot    #64b4ff;
+@define-color mk_red_dark   #24609f;
+@define-color mk_bg         #0c0c0c;
+@define-color mk_bg_alt     #141010;
+@define-color mk_fg         #ececec;
+
+@define-color theme_selected_bg_color @mk_red;
+@define-color theme_selected_fg_color #ffffff;
+@define-color accent_color            @mk_red;
+@define-color accent_bg_color         @mk_red;
+
+/* ---------- base surfaces ---------- */
+window, .background, dialog, messagedialog .dialog-action-box {
+  background-color: @mk_bg;
+  color: @mk_fg;
+}
+.view, textview text, iconview, treeview.view, list, row {
+  background-color: #12161c;
+  color: @mk_fg;
+}
+headerbar, .titlebar:not(headerbar), headerbar:backdrop {
+  background: linear-gradient(to bottom, #1d0303, #0d0101);
+  border-color: #3a0000;
+  box-shadow: inset 0 -1px #9e0b0b;
+  color: @mk_fg;
+}
+headerbar .title { color: #ffffff; font-weight: bold; }
+
+/* ---------- selection ---------- */
+*:selected, *:selected:focus, selection, .view:selected, .view:selected:focus,
+treeview.view:selected, iconview:selected, row:selected, row:selected:hover,
+flowboxchild:selected, entry selection, label selection, textview text selection {
+  background-color: @mk_red;
+  color: #ffffff;
+}
+row:hover:not(:selected) { background-color: rgba(214, 20, 20, 0.14); }
+*:link, link { color: @mk_red_hot; }
+*:visited { color: #c46060; }
+
+/* ---------- buttons ---------- */
+button {
+  background-image: linear-gradient(to bottom, #1c1414, #120d0d);
+  border-color: #2e1a1a;
+  color: @mk_fg;
+}
+button:hover { border-color: @mk_red; background-image: linear-gradient(to bottom, #1a2636, #170a0a); }
+button:active, button:checked {
+  background-image: linear-gradient(to bottom, #8f0b0b, #6a0000);
+  border-color: #b01010;
+  color: #ffffff;
+}
+button.suggested-action, button.default {
+  background-image: linear-gradient(to bottom, #e01b1b, #a80b0b);
+  border-color: #6a0000;
+  color: #ffffff;
+}
+button.suggested-action:hover { background-image: linear-gradient(to bottom, #64b4ff, #2f7fd6); }
+button.destructive-action { background-image: linear-gradient(to bottom, #555, #333); color: #fff; }
+
+/* ---------- entries ---------- */
+entry, spinbutton:not(.vertical) {
+  background-color: #0a0707;
+  border-color: #3a1c1c;
+  color: @mk_fg;
+}
+entry:focus, spinbutton:focus-within {
+  border-color: @mk_red;
+  box-shadow: inset 0 0 0 1px @mk_red;
+}
+
+/* ---------- toggles & ranges ---------- */
+switch:checked { background-color: @mk_red; border-color: @mk_red_dark; }
+check:checked, radio:checked, check:indeterminate, radio:indeterminate {
+  background-image: none;
+  background-color: @mk_red;
+  border-color: @mk_red_dark;
+  color: #ffffff;
+}
+progressbar progress, scale highlight, levelbar block.filled, levelbar block.high {
+  background-image: none;
+  background-color: @mk_red;
+  border-color: @mk_red_dark;
+}
+scale slider:hover { border-color: @mk_red; }
+scrollbar slider:hover, scrollbar slider:active { background-color: @mk_red; }
+notebook > header > tabs > tab:checked { box-shadow: inset 0 -3px @mk_red; color: #fff; }
+stackswitcher button:checked, .linked button:checked { background-image: linear-gradient(#a30d0d, #24609f); }
+spinner { color: @mk_red; }
+placessidebar row:selected, .sidebar row:selected { background-color: @mk_red_dark; }
+
+/* ---------- menus & tooltips ---------- */
+menu, .menu, .context-menu, popover.background {
+  background-color: #0e0a0a;
+  border: 1px solid #1d3550;
+  color: @mk_fg;
+}
+menu menuitem:hover, .menu menuitem:hover, menubar > menuitem:hover,
+modelbutton.flat:hover, popover modelbutton:hover {
+  background-color: @mk_red;
+  color: #ffffff;
+}
+menubar { background-color: #0d0808; box-shadow: inset 0 -1px #3a0000; }
+tooltip, tooltip.background {
+  background-color: rgba(20, 0, 0, 0.95);
+  border: 1px solid @mk_red;
+  color: #ffffff;
+}
+
+/* ---------- XFCE panel ---------- */
+.xfce4-panel.background {
+  background-color: rgba(8, 2, 2, 0.94);
+  border-bottom: 1px solid #a00d0d;
+  color: @mk_fg;
+}
+.xfce4-panel button { background-image: none; border-color: transparent; }
+.xfce4-panel button:hover { background-color: rgba(214, 20, 20, 0.25); }
+.xfce4-panel button:checked, .xfce4-panel button:active {
+  background-color: rgba(214, 20, 20, 0.55);
+  box-shadow: inset 0 -2px @mk_red_hot;
+}
+#whiskermenu-window, #whiskermenu-window .view { background-color: #0b0707; }
+#whiskermenu-window button:checked { background-image: linear-gradient(#a30d0d, #24609f); }
+
+/* ---------- XFCE desktop / notifications / terminal tabs ---------- */
+XfdesktopIconView.view:selected { background-color: rgba(214, 20, 20, 0.55); }
+#XfceNotifyWindow { background-color: rgba(12, 2, 2, 0.95); border: 1px solid @mk_red; }
+#XfceNotifyWindow progressbar progress { background-color: @mk_red; }
+vte-terminal { padding: 6px; }
+
+/* ---------- MARK 42 dock (panel-2) & top bar (panel-1) ---------- */
+#panel-1.background, #XfcePanelWindow#panel-1 {
+  background-color: rgba(6, 1, 1, 0.92);
+  border-bottom: 1px solid #a00d0d;
+}
+#panel-2.background, #XfcePanelWindow#panel-2 {
+  background-color: rgba(10, 2, 2, 0.88);
+  border: 1px solid #b00e0e;
+  border-radius: 16px;
+  box-shadow: 0 0 12px rgba(214, 20, 20, 0.45);
+}
+#panel-2 button { border-radius: 12px; padding: 3px; }
+#panel-2 button:hover { background-color: rgba(214, 20, 20, 0.22); }
+#whiskermenu-button { padding: 0 10px; }
+#whiskermenu-button label { color: #ff4a40; font-weight: bold; letter-spacing: 1px; }

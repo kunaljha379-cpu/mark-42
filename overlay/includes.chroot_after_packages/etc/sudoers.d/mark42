@@ -1,0 +1,4 @@
+# MARK 42 look for password prompts (permissions unchanged: sudo group = admin)
+Defaults passprompt="[MARK 42] authorization required for %p: "
+Defaults lecture="never"
+# pwfeedback removed: showing * per key leaks the password length

@@ -1,0 +1,110 @@
+#!/bin/sh
+# MARK 42 branding, runs inside the image after all packages are installed.
+set -e
+echo "[MARK42] applying branding"
+
+# --- OS identity (Debian ID kept so every Debian tool/command keeps working) ---
+for f in /usr/lib/os-release /etc/os-release; do
+  [ -f "$f" ] && [ ! -L "$f" ] || continue
+  sed -i -e 's/^PRETTY_NAME=.*/PRETTY_NAME="MARK 42 (Debian 13 core)"/' \
+         -e 's/^NAME=.*/NAME="MARK 42"/' "$f"
+done
+echo "mark42" > /etc/hostname
+printf 'MARK 42 \\n \\l\n\n' > /etc/issue
+echo "MARK 42" > /etc/issue.net
+
+# --- boot animation ---
+plymouth-set-default-theme mark42
+mkdir -p /etc/plymouth
+printf '[Daemon]\nTheme=mark42\nShowDelay=0\nDeviceTimeout=8\n' > /etc/plymouth/plymouthd.conf
+
+# --- GRUB theme fonts ---
+T=/boot/grub/themes/mark42
+grub-mkfont -s 16 -o $T/dejavu_sans_16.pf2      /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+grub-mkfont -s 20 -o $T/dejavu_sans_20.pf2      /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+grub-mkfont -s 22 -o $T/dejavu_sans_bold_22.pf2 /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+grub-mkfont -s 16 -o $T/dejavu_mono_16.pf2      /usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf
+
+# --- wallpaper as the system default (desktop-base alternative) ---
+if [ -d /usr/share/images/desktop-base ]; then
+  update-alternatives --install /usr/share/images/desktop-base/desktop-background \
+      desktop-background /usr/share/backgrounds/mark42/mark42-wallpaper.png 100
+  update-alternatives --set desktop-background /usr/share/backgrounds/mark42/mark42-wallpaper.png
+fi
+
+gtk-update-icon-cache -f -q /usr/share/icons/hicolor || true
+
+# --- installer branding ---
+if [ -f /etc/calamares/settings.conf ]; then
+  sed -i 's/^branding:.*/branding: mark42/' /etc/calamares/settings.conf
+fi
+for d in /usr/share/applications/calamares-install-debian.desktop /usr/share/applications/install-debian.desktop; do
+  [ -f "$d" ] && sed -i -e 's/^Name=.*/Name=Install MARK 42/' -e 's/^Icon=.*/Icon=mark42/' "$d"
+done
+
+# --- red shell prompt + fastfetch on terminal start ---
+cat >> /etc/skel/.bashrc <<'RC'
+
+# ===== MARK 42 =====
+if [ "$EUID" -eq 0 ]; then
+  # full root mode (mark42): white-on-red banner stays red on purpose = "careful, root"
+  PS1='\[\e[1;31m\]┌─\[\e[1;97;41m\] MARK 42 :: ROOT \[\e[0;1;31m\]─[\[\e[0;37m\]\w\[\e[1;31m\]]\n└──# \[\e[0m\]'
+else
+  PS1='\[\e[1;34m\]┌─[\[\e[0;97m\]\u\[\e[1;34m\]@\[\e[0;97m\]mark42\[\e[1;34m\]]─[\[\e[0;37m\]\w\[\e[1;34m\]]\n└──╼ \[\e[0m\]'
+fi
+# "mark" = sudo, "mark42" = full root shell; trailing space lets aliases work after mark
+alias mark='mark '
+alias sudo='sudo '
+alias ll='ls -lah --color=auto'
+alias update='mark apt update && mark apt full-upgrade'
+# clean terminal: run "fastfetch" yourself to show the system logo/info
+RC
+cp /etc/skel/.bashrc /root/.bashrc 2>/dev/null || true
+
+# --- default shell: zsh with live command colours (bash stays installed) ---
+sed -i 's|^#\?DSHELL=.*|DSHELL=/bin/zsh|' /etc/adduser.conf
+sed -i 's|^SHELL=.*|SHELL=/bin/zsh|' /etc/default/useradd
+cp /etc/skel/.zshrc /root/.zshrc
+usermod -s /bin/zsh root
+
+# --- root commands: mark / mark42 ---
+chown root:root /etc/sudoers.d/mark42 && chmod 0440 /etc/sudoers.d/mark42
+visudo -cf /etc/sudoers.d/mark42
+chmod 0755 /usr/local/bin/mark /usr/local/bin/mark42 /usr/local/bin/blackmark42
+
+# --- KDE Plasma: MARK 42 avatar on the login screen and for new users ---
+if [ -d /usr/share/sddm/faces ]; then
+  cp /usr/share/mark42/mark42-avatar.png /usr/share/sddm/faces/.face.icon
+fi
+cp /usr/share/mark42/mark42-avatar.png /etc/skel/.face.icon
+ln -sf .face.icon /etc/skel/.face
+
+# --- Flatpak: Flathub app catalog (AUR-like); retried on first boot if offline ---
+flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo \
+  || echo "[MARK42] Flathub not reachable now, will be added on first boot"
+systemctl enable mark42-flathub.service
+systemctl enable mark42-vm-tune.service
+
+# --- NVIDIA: driver is installed on demand (mark42-nvidia), not at build ---
+chmod 755 /usr/local/bin/mark42-nvidia /usr/local/bin/prime-run
+
+# --- JARVIS/Ultron: make the command scripts executable ---
+chmod 755 /usr/local/bin/ultron /usr/local/bin/jarvis \
+          /usr/local/share/mark42/jarvis/jarvis.py 2>/dev/null || true
+
+# --- security: firewall ON (deny incoming), drop cups-browsed ---
+# ufw is installed disabled by Debian; "ufw enable" can't run in a chroot,
+# so switch it on in its config. Default policy is already DROP incoming.
+sed -i 's/^ENABLED=.*/ENABLED=yes/' /etc/ufw/ufw.conf
+# cups-browsed (pulled in by recommends) listens on the network and had a
+# remote code execution bug in 2024; local and USB printers work without it.
+apt-get purge -y cups-browsed || true
+
+# --- faster boot: don't wait for network, no mobile-modem probing ---
+systemctl mask NetworkManager-wait-online.service || true
+systemctl disable ModemManager.service || true
+systemctl enable zramswap.service || true
+
+# --- rebuild initramfs so the boot animation is inside it ---
+update-initramfs -u -k all
+echo "[MARK42] branding done"

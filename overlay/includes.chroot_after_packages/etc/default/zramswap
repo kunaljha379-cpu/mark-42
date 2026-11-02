@@ -1,0 +1,4 @@
+# MARK 42: compressed swap in RAM (zram) so low-RAM PCs stay smooth
+ALGO=zstd
+PERCENT=50
+PRIORITY=100

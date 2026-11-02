@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Install Steam
+Comment=Download and install Steam (games) from Flathub
+Exec=konsole --hold -e /usr/local/bin/mark42-install-steam
+Icon=steam
+Categories=Game;

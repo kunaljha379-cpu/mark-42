@@ -1,0 +1,5 @@
+# MARK 42: early KMS graphics drivers (smooth, full-res boot splash)
+i915
+amdgpu
+radeon
+nouveau

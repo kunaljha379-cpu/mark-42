@@ -1,0 +1,22 @@
+  ███  MARK 42 · i3 KEYS  ███          (Super = Windows key)
+
+  Super + Enter          terminal
+  Super + D              app launcher (rofi)
+  Super + Tab            switch window
+  Super + E / B          files / Firefox
+  Super + Shift + Q      close window
+  Super + 1..0           go to workspace
+  Super + Shift + 1..0   move window to workspace
+  Super + arrows         move focus
+  Super + Shift + arrows move window
+  Super + F              fullscreen
+  Super + H / V          next window splits horizontally / vertically
+  Super + W / S / T      tabbed / stacked / split layout
+  Super + Shift + Space  float / tile window
+  Super + Shift + S      resize mode (arrows, Esc to leave)
+  Super + Escape         lock screen
+  Super + Shift + E      power menu (logout / reboot / shutdown)
+  Print                  screenshot
+  Super + Shift + C / R  reload / restart i3
+
+  Config file: ~/.config/i3/config   (edit, then Super+Shift+C)

@@ -1,0 +1,14 @@
+[Unit]
+Description=MARK 42: add the Flathub app catalog
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=!/var/lib/flatpak/repo/flathub.trustedkeys.gpg
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target

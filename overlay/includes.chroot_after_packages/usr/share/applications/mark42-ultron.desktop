@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Ultron AI
+GenericName=Local AI assistant
+Comment=Offline AI for MARK 42 (first run downloads it)
+Exec=konsole --hold -e ultron
+Icon=system-search
+Terminal=false
+Categories=Utility;Development;ConsoleOnly;
+Keywords=ai;ollama;assistant;chat;llm;

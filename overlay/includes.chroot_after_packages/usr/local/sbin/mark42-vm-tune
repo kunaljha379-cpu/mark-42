@@ -1,0 +1,13 @@
+#!/bin/sh
+# MARK 42: smooth mouse inside virtual machines.
+# Without a real GPU every slow compositor frame also delays the cursor, so
+# switch off the heaviest effects. (Forcing the X11 session was tried and gave
+# a black screen in VirtualBox, so the session is left alone.)
+# Runs before the login screen; does nothing on real hardware.
+systemd-detect-virt --vm --quiet || exit 0
+
+# Blur + background contrast are the heaviest effects without a real GPU
+if [ -f /etc/xdg/kwinrc ]; then
+  sed -i 's/^blurEnabled=true/blurEnabled=false/; s/^contrastEnabled=true/contrastEnabled=false/' /etc/xdg/kwinrc
+fi
+exit 0

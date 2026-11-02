@@ -1,0 +1,9 @@
+# GTK2 fallback for old apps: dark with red selection
+gtk-color-scheme = "bg_color:#0c0c0c\nfg_color:#ececec\nbase_color:#12161c\ntext_color:#ececec\nselected_bg_color:#2f7fd6\nselected_fg_color:#ffffff"
+style "mk" {
+  bg[NORMAL] = "#0c0c0c"  bg[PRELIGHT] = "#1a2636"  bg[SELECTED] = "#2f7fd6"  bg[ACTIVE] = "#161d28"
+  fg[NORMAL] = "#ececec"  fg[PRELIGHT] = "#ffffff"  fg[SELECTED] = "#ffffff"  fg[ACTIVE] = "#ececec"
+  base[NORMAL] = "#12161c" base[SELECTED] = "#2f7fd6" base[ACTIVE] = "#24609f"
+  text[NORMAL] = "#ececec" text[SELECTED] = "#ffffff"
+}
+class "GtkWidget" style "mk"

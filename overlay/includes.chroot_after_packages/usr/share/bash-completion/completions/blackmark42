@@ -1,0 +1,17 @@
+# MARK 42 — bash completion for blackmark42
+_blackmark42() {
+  local cur prev cats subcmds
+  cur=${COMP_WORDS[COMP_CWORD]}; prev=${COMP_WORDS[COMP_CWORD-1]}
+  cats="information-gathering vulnerability web database passwords wireless \
+802-11 bluetooth reverse-engineering exploitation social-engineering \
+sniffing-spoofing post-exploitation forensics gpu hardware crypto-stego fuzzing"
+  subcmds="list tools help update remove"
+  if [ "$COMP_CWORD" -eq 1 ]; then
+    COMPREPLY=($(compgen -W "$subcmds $cats" -- "$cur")); return
+  fi
+  case "${COMP_WORDS[1]}" in
+    help|info) COMPREPLY=($(compgen -W "$(blackmark42 tools 2>/dev/null | awk '{for(i=2;i<=NF;i++)print $i}')" -- "$cur")) ;;
+    *)         COMPREPLY=($(compgen -W "$cats" -- "$cur")) ;;
+  esac
+}
+complete -F _blackmark42 blackmark42

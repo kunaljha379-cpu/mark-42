@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=X-GNOME-Metatheme
+Name=MARK42
+Comment=MARK 42 red and black Iron Man theme
+Encoding=UTF-8
+
+[X-GNOME-Metatheme]
+GtkTheme=MARK42
+MetacityTheme=MARK42
+IconTheme=breeze-dark
+CursorTheme=Adwaita
+ButtonLayout=:minimize,maximize,close

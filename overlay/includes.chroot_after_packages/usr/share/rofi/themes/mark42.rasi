@@ -1,0 +1,20 @@
+/* MARK 42 rofi theme */
+* {
+    bg:      #12161cf0;
+    bg-alt:  #1a2230;
+    fg:      #ececec;
+    red:     #2f7fd6;
+    hot:     #64b4ff;
+    background-color: transparent;
+    text-color: @fg;
+}
+window   { width: 640px; background-color: @bg; border: 2px; border-color: @red; border-radius: 10px; padding: 16px; }
+mainbox  { spacing: 12px; children: [ inputbar, listview ]; }
+inputbar { background-color: @bg-alt; border: 0 0 2px 0; border-color: @hot; border-radius: 6px; padding: 10px; spacing: 10px; children: [ prompt, entry ]; }
+prompt   { text-color: @hot; }
+entry    { placeholder: "Search..."; placeholder-color: #777777; }
+listview { lines: 8; columns: 1; spacing: 4px; fixed-height: true; scrollbar: false; }
+element  { padding: 8px 10px; border-radius: 6px; spacing: 12px; }
+element selected { background-color: @red; text-color: #ffffff; }
+element-icon { size: 24px; background-color: inherit; }
+element-text { background-color: inherit; text-color: inherit; vertical-align: 0.5; }

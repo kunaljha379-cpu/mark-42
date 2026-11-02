@@ -1,0 +1,6 @@
+[Desktop Entry]
+# MARK 42: KDE Connect opens network ports 1714-1764; start it from the menu when needed.
+Type=Application
+Name=KDE Connect
+Exec=/usr/bin/kdeconnectd
+Hidden=true

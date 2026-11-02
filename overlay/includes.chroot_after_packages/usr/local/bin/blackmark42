@@ -1,0 +1,238 @@
+#!/bin/bash
+# =====================================================================
+#  blackmark42 — MARK 42 security arsenal
+#
+#  Installs the Kali tool metapackages onto MARK 42 (a Debian 13 base).
+#  The downloaded packages and a catalogue are kept in the MARK 42 folder
+#  (/opt/mark42/arsenal); the tools themselves install to the normal
+#  system path, so they run from anywhere.
+#
+#    blackmark42                 install every category below
+#    blackmark42 web passwords   install only those categories
+#    blackmark42 list            categories + what is installed
+#    blackmark42 tools [cat]     list the tools in installed categories
+#    blackmark42 help <tool>     deep help for one tool
+#    blackmark42 update          refresh package lists
+#    blackmark42 remove <cat>    remove a category's metapackage
+#
+#  The Kali repository is pinned low, so it is used only for packages you
+#  ask for here and does not take over the Debian base system.
+# =====================================================================
+set -euo pipefail
+
+ARSENAL="/opt/mark42/arsenal"          # the "mark42 dir": .debs + catalogue
+DEBS="$ARSENAL/debs"
+CATALOG="$ARSENAL/catalog"
+KEYRING="/usr/share/keyrings/kali-archive-keyring.gpg"
+SOURCES="/etc/apt/sources.list.d/mark42-kali.sources"
+PREFS="/etc/apt/preferences.d/mark42-kali.pref"
+KALI_FPR="827C8569F2518CC677FECA1AED65462EC8D5E4C5"
+KALI_KEY_URL="https://archive.kali.org/archive-key.asc"
+DOCS="https://www.kali.org/tools"
+
+# friendly name  ->  metapackage
+CATS=(
+  "information-gathering:kali-tools-information-gathering:Open-source intelligence (OSINT) & information gathering"
+  "vulnerability:kali-tools-vulnerability:Vulnerability assessment"
+  "web:kali-tools-web:Web application testing"
+  "database:kali-tools-database:Database assessment"
+  "passwords:kali-tools-passwords:Password recovery, online & offline"
+  "wireless:kali-tools-wireless:Wireless protocols — 802.11, Bluetooth, RFID, SDR"
+  "802-11:kali-tools-802-11:802.11 (Wi-Fi)"
+  "bluetooth:kali-tools-bluetooth:Bluetooth devices"
+  "reverse-engineering:kali-tools-reverse-engineering:Reverse engineering binaries"
+  "exploitation:kali-tools-exploitation:Exploitation"
+  "social-engineering:kali-tools-social-engineering:Social-engineering techniques"
+  "sniffing-spoofing:kali-tools-sniffing-spoofing:Sniffing & spoofing"
+  "post-exploitation:kali-tools-post-exploitation:Post-exploitation"
+  "forensics:kali-tools-forensics:Forensics, live & offline"
+  "gpu:kali-tools-gpu:Tools that use GPU hardware"
+  "hardware:kali-tools-hardware:Hardware-hacking tools"
+  "crypto-stego:kali-tools-crypto-stego:Cryptography & steganography"
+  "fuzzing:kali-tools-fuzzing:Protocol fuzzing"
+)
+
+C_B=$'\e[1;34m'; C_H=$'\e[1;36m'; C_W=$'\e[1;97m'; C_D=$'\e[0;37m'
+C_G=$'\e[1;32m'; C_R=$'\e[1;31m'; C_0=$'\e[0m'
+say()  { printf '%s[blackmark42]%s %s\n' "$C_B" "$C_0" "$*"; }
+warn() { printf '%s[blackmark42]%s %s\n' "$C_R" "$C_0" "$*" >&2; }
+die()  { warn "$*"; exit 1; }
+
+need_root() {
+  if [ "$(id -u)" != 0 ]; then exec sudo -E "$0" "$@"; fi
+}
+
+meta_for() {  # echoes two lines: metapackage, then description
+  local n=$1 e rest m d
+  for e in "${CATS[@]}"; do
+    rest=${e#*:}; m=${rest%%:*}; d=${rest#*:}
+    if [ "${e%%:*}" = "$n" ] || [ "$m" = "$n" ]; then echo "$m"; echo "$d"; return 0; fi
+  done
+  return 1; }
+
+installed_p() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"; }
+
+# --------------------------------------------------- one-time repo setup
+setup_repo() {
+  [ -f "$SOURCES" ] && [ -f "$KEYRING" ] && return 0
+  need_root "$@"
+  say "first run: adding the Kali tool repository (pinned, Debian base stays in charge)"
+  command -v curl >/dev/null || { apt-get update -qq; apt-get install -y curl gnupg; }
+  mkdir -p "$(dirname "$KEYRING")"
+  local tmp; tmp=$(mktemp)
+  curl -fsSL "$KALI_KEY_URL" -o "$tmp" || die "could not download the Kali signing key (no internet?)"
+  gpg --dearmor < "$tmp" > "$KEYRING"
+  rm -f "$tmp"
+  local fpr; fpr=$(gpg --show-keys --with-colons "$KEYRING" 2>/dev/null | awk -F: '/^fpr:/{print $10; exit}')
+  [ "$fpr" = "$KALI_FPR" ] || die "Kali key fingerprint mismatch (got ${fpr:-none}); aborting for safety"
+  say "Kali key verified: $KALI_FPR"
+  cat > "$SOURCES" <<EOF
+# MARK 42: Kali tool repository (added by blackmark42). Pinned low in $PREFS
+# so it only supplies tools you install with blackmark42.
+Types: deb
+URIs: http://http.kali.org/kali
+Suites: kali-rolling
+Components: main contrib non-free non-free-firmware
+Signed-By: $KEYRING
+Enabled: yes
+EOF
+  cat > "$PREFS" <<'EOF'
+# MARK 42: keep the Debian 13 base in charge. Kali packages are used only
+# when you explicitly install them (priority 100 = never auto-preferred over
+# an installed Debian package, never pulled in just to "upgrade" the system).
+Package: *
+Pin: release o=Kali
+Pin-Priority: 100
+EOF
+  mkdir -p "$DEBS" "$CATALOG"
+  apt-get update
+}
+
+# ------------------------------------------------------------ install
+install_cats() {
+  need_root "$@"
+  setup_repo "$@"
+  local names=("$@") metas=() desc m d
+  [ ${#names[@]} -eq 0 ] && for e in "${CATS[@]}"; do names+=("${e%%:*}"); done
+  for n in "${names[@]}"; do
+    if ! { read -r m; read -r d; } < <(meta_for "$n"); then warn "unknown category: $n (try: blackmark42 list)"; continue; fi
+    metas+=("$m")
+  done
+  [ ${#metas[@]} -eq 0 ] && die "nothing to install"
+  say "installing: ${metas[*]}"
+  say "keeping downloaded packages in $DEBS"
+  mkdir -p "$DEBS" "$CATALOG"
+  # -o Dir::Cache::archives saves every .deb into the MARK 42 folder as it installs
+  apt-get update
+  apt-get install -y --no-install-recommends \
+    -o Dir::Cache::archives="$DEBS" \
+    -o Dpkg::Options::=--force-confold \
+    "${metas[@]}"
+  for m in "${metas[@]}"; do catalog_one "$m"; done
+  say "${C_G}done.${C_0} tools are on your PATH — run them from anywhere."
+  say "deep help for any tool:  blackmark42 help <tool>"
+}
+
+remove_cats() {
+  need_root "$@"
+  [ $# -ge 1 ] || die "usage: blackmark42 remove <category>..."
+  local metas=() m d
+  for n in "$@"; do { read -r m; read -r d; } < <(meta_for "$n") && metas+=("$m") || warn "unknown: $n"; done
+  [ ${#metas[@]} -eq 0 ] && die "nothing to remove"
+  say "removing metapackages (installed tools stay unless autoremoved): ${metas[*]}"
+  apt-get remove -y "${metas[@]}"
+  say "run 'mark apt autoremove' to clear tools no longer needed by any category"
+}
+
+# save the list of tools a metapackage pulls in, for 'tools' and 'help'
+catalog_one() {
+  local meta=$1
+  mkdir -p "$CATALOG"
+  apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts \
+      --no-breaks --no-replaces --no-enhances "$meta" 2>/dev/null \
+    | awk '/^\w/{print $1}' | sort -u > "$CATALOG/$meta.list" || true
+}
+
+# ------------------------------------------------------------ listings
+cmd_list() {
+  printf '%sMARK 42 arsenal — categories%s\n\n' "$C_H" "$C_0"
+  local e n m d
+  for e in "${CATS[@]}"; do
+    n=${e%%:*}; m=${e#*:}; d=${m#*:}; m=${m%%:*}
+    if installed_p "$m"; then printf '  %s●%s %-22s %s%s%s\n' "$C_G" "$C_0" "$n" "$C_D" "$d" "$C_0"
+    else                      printf '  %s○%s %-22s %s%s%s\n' "$C_D" "$C_0" "$n" "$C_D" "$d" "$C_0"; fi
+  done
+  printf '\n  %s●%s installed   %s○%s not installed\n' "$C_G" "$C_0" "$C_D" "$C_0"
+  printf '  install all:  %sblackmark42%s    one:  %sblackmark42 web%s\n' "$C_W" "$C_0" "$C_W" "$C_0"
+}
+
+cmd_tools() {
+  local files n m d
+  if [ $# -ge 1 ]; then
+    { read -r m; read -r d; } < <(meta_for "$1") || die "unknown category: $1"
+    files="$CATALOG/$m.list"
+    [ -f "$files" ] || die "category '$1' is not installed yet"
+  else
+    files=$(ls "$CATALOG"/*.list 2>/dev/null) || die "nothing installed yet — run: blackmark42 web  (or just blackmark42)"
+  fi
+  # show only real, runnable tools (packages that ship a program)
+  cat $files | sort -u | while read -r pkg; do
+    installed_p "$pkg" || continue
+    local bins; bins=$(dpkg -L "$pkg" 2>/dev/null | grep -E '^/usr/(s?bin|games)/' | xargs -r -n1 basename | sort -u | tr '\n' ' ')
+    [ -n "$bins" ] && printf '  %s%-28s%s %s%s%s\n' "$C_B" "$pkg" "$C_0" "$C_D" "$bins" "$C_0"
+  done
+}
+
+# ------------------------------------------------- deep help for a tool
+cmd_help_tool() {
+  local t=${1:-}; [ -n "$t" ] || die "usage: blackmark42 help <tool>"
+  local bin pkg
+  bin=$(command -v "$t" 2>/dev/null || true)
+  if [ -n "$bin" ]; then pkg=$(dpkg -S "$bin" 2>/dev/null | cut -d: -f1 | head -1)
+  else pkg=$(dpkg -S "*/$t" 2>/dev/null | cut -d: -f1 | head -1); fi
+
+  printf '%s╔══ %s%s%s' "$C_B" "$C_W" "$t" "$C_0"; printf '%s %s\n' "$C_B" "$C_0"
+  if [ -n "$bin" ]; then printf '  %spath%s     %s  (on PATH — run from anywhere)\n' "$C_H" "$C_0" "$bin"
+  else printf '  %spath%s     not found. install its category first (blackmark42 list)\n' "$C_H" "$C_0"; fi
+  [ -n "${pkg:-}" ] && printf '  %spackage%s  %s\n' "$C_H" "$C_0" "$pkg"
+
+  if [ -n "${pkg:-}" ]; then
+    printf '\n%s── what it is ──%s\n' "$C_B" "$C_0"
+    apt-cache show "$pkg" 2>/dev/null | awk '/^Description/{d=1;sub(/^Description[^:]*: /,"")} d&&/^ /{sub(/^ /,"")} d{print} /^$/{if(d)exit}' | sed 's/^/  /'
+    printf '  %sdocs:%s %s/%s\n' "$C_D" "$C_0" "$DOCS" "${pkg#kali-}"
+  fi
+
+  printf '\n%s── one-line summary ──%s\n' "$C_B" "$C_0"
+  whatis "$t" 2>/dev/null | sed 's/^/  /' || printf '  (no whatis entry)\n'
+
+  printf '\n%s── built-in help (%s --help) ──%s\n' "$C_B" "$t" "$C_0"
+  if [ -n "$bin" ]; then
+    { timeout 8 "$t" --help 2>&1 || timeout 8 "$t" -h 2>&1; } | sed 's/^/  /' | head -40
+  else printf '  install it first.\n'; fi
+
+  if man -w "$t" >/dev/null 2>&1; then
+    printf '\n%s── manual ──%s  full page:  %sman %s%s\n' "$C_B" "$C_0" "$C_W" "$t" "$C_0"
+    man "$t" 2>/dev/null | col -bx | sed -n '1,30p' | sed 's/^/  /'
+  fi
+  printf '\n%stip:%s  man %s   ·   %s --help   ·   less-cut output is just a preview\n' "$C_D" "$C_0" "$t" "$t"
+}
+
+usage() {
+  sed -n '2,33p' "$0" | sed 's/^#\s\?//'
+}
+
+# ------------------------------------------------------------- dispatch
+cmd=${1:-install-all}; [ $# -ge 1 ] && shift || true
+case "$cmd" in
+  install-all)              install_cats ;;
+  list|ls)                  cmd_list ;;
+  tools)                    cmd_tools "$@" ;;
+  help|info)
+      if [ $# -ge 1 ]; then cmd_help_tool "$@"; else usage; fi ;;
+  update)                   need_root; setup_repo; apt-get update ;;
+  remove|rm|uninstall)      remove_cats "$@" ;;
+  -h|--help)                usage ;;
+  *)  # treat any other words as category names to install
+      if meta_for "$cmd" >/dev/null; then install_cats "$cmd" "$@"
+      else usage; fi ;;
+esac

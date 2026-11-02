@@ -1,0 +1,4 @@
+# GRUB for BIOS/legacy PCs, stored on the ISO for offline installs
+# (separate file: live-build downloads each list with its own apt call,
+#  and grub-pc conflicts with grub-efi-amd64)
+grub-pc

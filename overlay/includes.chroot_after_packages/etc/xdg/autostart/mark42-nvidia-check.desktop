@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=MARK 42 NVIDIA check
+Comment=Tells you if the NVIDIA GPU needs its one-time Secure Boot setup
+Exec=/usr/local/bin/mark42-nvidia check
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=2
+NoDisplay=true

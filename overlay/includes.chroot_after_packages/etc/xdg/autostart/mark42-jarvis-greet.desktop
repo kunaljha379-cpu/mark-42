@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=JARVIS welcome
+Comment=Spoken welcome at login
+Exec=jarvis greet
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=2
+NoDisplay=true

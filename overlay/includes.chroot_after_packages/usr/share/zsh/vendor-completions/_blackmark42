@@ -1,0 +1,29 @@
+#compdef blackmark42
+# MARK 42 — Tab completion for blackmark42
+
+_blackmark42() {
+  local -a cats subcmds
+  cats=(
+    information-gathering vulnerability web database passwords wireless
+    802-11 bluetooth reverse-engineering exploitation social-engineering
+    sniffing-spoofing post-exploitation forensics gpu hardware
+    crypto-stego fuzzing
+  )
+  subcmds=(list tools help update remove)
+
+  if (( CURRENT == 2 )); then
+    _describe -t commands 'blackmark42 command' subcmds
+    _describe -t categories 'category' cats
+    return
+  fi
+  case ${words[2]} in
+    help|info)
+      # complete installed tool names
+      local -a tools
+      tools=(${(f)"$(blackmark42 tools 2>/dev/null | awk '{for(i=2;i<=NF;i++)print $i}')"})
+      _describe -t tools 'tool' tools ;;
+    tools|remove|rm) _describe -t categories 'category' cats ;;
+    *)               _describe -t categories 'category' cats ;;
+  esac
+}
+_blackmark42 "$@"

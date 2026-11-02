@@ -1,0 +1,38 @@
+---
+componentName:  mark42
+welcomeStyleCalamares: true
+welcomeExpandingLogo: true
+windowExpanding: normal
+windowSize: 900px,620px
+windowPlacement: center
+
+strings:
+    productName:         MARK 42
+    shortProductName:    MARK 42
+    version:             1.0
+    shortVersion:        1.0
+    versionedName:       MARK 42 v1.0
+    shortVersionedName:  MARK 42 1.0
+    bootloaderEntryName: MARK42
+    productUrl:          https://www.debian.org
+    supportUrl:          https://www.debian.org/support
+    knownIssuesUrl:      https://bugs.debian.org
+    releaseNotesUrl:     https://www.debian.org/releases/trixie/releasenotes
+    donateUrl:           https://www.debian.org
+
+sidebar: widget
+navigation: widget
+
+images:
+    productLogo:         "mark42-logo.png"
+    productIcon:         "mark42-logo.png"
+    productWelcome:      "welcome.png"
+
+slideshow:               "show.qml"
+slideshowAPI: 2
+
+style:
+   SidebarBackground:        "#070101"
+   SidebarText:              "#d8d8d8"
+   SidebarTextCurrent:       "#ffffff"
+   SidebarBackgroundCurrent: "#b00e0e"

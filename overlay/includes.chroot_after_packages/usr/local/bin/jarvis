@@ -1,0 +1,145 @@
+#!/bin/bash
+# =====================================================================
+#  jarvis — MARK 42 voice assistant
+#
+#  JARVIS listens to you, talks back through your speakers, and can run
+#  things on your machine. It is fully offline (Vosk speech + eSpeak-NG
+#  voice) and uses the same local AI engine as Ultron for its brain.
+#
+#    jarvis                 start listening (say "Jarvis ..." to talk)
+#    jarvis setup           one-time download/install of the voice parts
+#    jarvis say <text>      speak a line (test the voice)
+#    jarvis ask <text>      ask once by text, spoken answer
+#    jarvis greet           the login welcome (used automatically at login)
+#    jarvis voice <name>    change eSpeak voice, e.g. en-us, en-gb
+#    jarvis status          what's installed / running
+#    jarvis stop            stop listening
+#    jarvis help
+#
+#  Storage lives under /opt/mark42/jarvis. The voice plays through the
+#  system speakers (PipeWire). Nothing is sent off the machine.
+# =====================================================================
+set -euo pipefail
+
+JDIR="/opt/mark42/jarvis"
+VENV="$JDIR/venv"
+VOSK_MODEL="$JDIR/vosk-model"
+ENGINE="/usr/local/share/mark42/jarvis/jarvis.py"
+VOSK_URL="https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"
+CONFIG="$JDIR/config"
+
+blue() { printf '\033[1;36m[JARVIS]\033[0m %s\n' "$*"; }
+red()  { printf '\033[1;31m[JARVIS]\033[0m %s\n' "$*" >&2; }
+die()  { red "$*"; exit 1; }
+
+# the human who is logged in (works whether or not we re-exec via sudo)
+real_user() { echo "${SUDO_USER:-${USER:-$(id -un)}}"; }
+need_root() { [ "$(id -u)" -eq 0 ] || exec sudo -E "$0" "$@"; }
+
+py() { "$VENV/bin/python" "$ENGINE" "$@"; }
+
+# ------------------------------------------------------------- setup
+setup() {
+  need_root setup
+  mkdir -p "$JDIR" "$JDIR/logs"
+  command -v espeak-ng >/dev/null || die "espeak-ng is missing (should be preinstalled)."
+
+  # 1) the AI engine (shared with Ultron)
+  if ! command -v ollama >/dev/null 2>&1; then
+    blue "Setting up the local AI engine (via Ultron)..."
+    ultron install || die "Could not set up the AI engine."
+  fi
+  # 2) a polite JARVIS persona on top of the same model
+  build_persona
+  # 3) Python voice libraries in a private venv
+  if [ ! -x "$VENV/bin/python" ]; then
+    blue "Creating the voice environment..."
+    python3 -m venv --system-site-packages "$VENV" || die "venv creation failed."
+  fi
+  blue "Installing speech libraries (Vosk + sounddevice)..."
+  "$VENV/bin/pip" install --quiet --upgrade pip
+  "$VENV/bin/pip" install --quiet vosk sounddevice || die "pip install failed (need internet)."
+  # 4) the offline speech model
+  if [ ! -d "$VOSK_MODEL" ]; then
+    blue "Downloading the speech model (~40 MB, one time)..."
+    tmp="$(mktemp -d)"
+    curl -fL "$VOSK_URL" -o "$tmp/m.zip" || die "Speech model download failed."
+    (cd "$tmp" && unzip -q m.zip)
+    mv "$tmp"/vosk-model-* "$VOSK_MODEL"
+    rm -rf "$tmp"
+  fi
+  chown -R "$(real_user)": "$JDIR"
+  blue "JARVIS is ready. Just type:  jarvis"
+}
+
+build_persona() {
+  command -v ollama >/dev/null || return 0
+  local u; u="$(real_user)"
+  local base="dolphin-mistral:latest"
+  [ -f /opt/mark42/ultron/config ] && base="$(cat /opt/mark42/ultron/config)"
+  local mf; mf="$(mktemp)"
+  cat > "$mf" <<EOF
+FROM $base
+PARAMETER temperature 0.6
+PARAMETER num_ctx 8192
+SYSTEM """You are JARVIS, the courteous British AI assistant of the MARK 42
+computer. You assist $u and address them respectfully (as "sir" or by name).
+Keep spoken replies short, calm and natural — one or two sentences.
+
+You can operate this Linux machine on the operator's behalf. When they clearly
+ask you to DO something on the system (open an app, manage files in their home
+folder, check status, change a setting), include the exact shell command(s)
+inside <cmd></cmd> tags, and also say a brief confirmation out loud. Use the
+operator's own account and home directory. If a request is just a question,
+simply answer it briefly and do not use <cmd>. Never read command syntax aloud;
+speak like a person."""
+EOF
+  blue "Teaching JARVIS its manners..."
+  ollama create jarvis -f "$mf" >/dev/null || red "Could not build the JARVIS persona."
+  rm -f "$mf"
+}
+
+ensure_engine() {
+  # make sure the Ollama server is up (Ultron owns it)
+  if ! curl -fsS "http://127.0.0.1:11434/api/tags" >/dev/null 2>&1; then
+    blue "Waking the AI engine..."
+    ultron install >/dev/null 2>&1 || true
+  fi
+}
+
+# ------------------------------------------------------------- greet (login)
+greet() {
+  command -v espeak-ng >/dev/null || exit 0
+  local name h g
+  name="$(getent passwd "$(real_user)" | cut -d: -f5 | cut -d, -f1)"
+  [ -n "$name" ] && name="${name%% *}" || name="$(real_user)"
+  h="$(date +%H)"
+  if   [ "$h" -lt 12 ]; then g="Good morning"
+  elif [ "$h" -lt 18 ]; then g="Good afternoon"
+  else g="Good evening"; fi
+  JARVIS_USER="$name" "$VENV/bin/python" "$ENGINE" say \
+    "$g, $name. Welcome back to MARK 42. All systems are online." 2>/dev/null \
+    || espeak-ng -v en-gb -s 155 -p 22 "$g, $name. Welcome back to MARK 42."
+}
+
+# ------------------------------------------------------------- commands
+case "${1:-listen}" in
+  setup)   setup ;;
+  listen|"")
+    [ -x "$VENV/bin/python" ] && [ -d "$VOSK_MODEL" ] || { blue "First run — setting up..."; setup; }
+    ensure_engine
+    JARVIS_USER="$(real_user)" py listen ;;
+  say)     shift; JARVIS_USER="$(real_user)" py say "$@" 2>/dev/null || espeak-ng -v en-gb "$*" ;;
+  ask)     shift; ensure_engine; JARVIS_USER="$(real_user)" py ask "$@" ;;
+  greet)   greet ;;
+  voice)   shift; [ -n "${1:-}" ] || die "usage: jarvis voice <en-us|en-gb|...>"; echo "$1" > "$CONFIG"; blue "Voice set to $1"; espeak-ng -v "$1" "Voice changed." ;;
+  stop)    pkill -f "$ENGINE" 2>/dev/null && blue "Stopped listening." || blue "JARVIS was not listening." ;;
+  status)
+    echo -n "Voice engine : "; command -v espeak-ng >/dev/null && echo "espeak-ng ok" || echo "MISSING"
+    echo -n "Speech libs  : "; [ -x "$VENV/bin/python" ] && echo "installed" || echo "not set up (run: jarvis setup)"
+    echo -n "Speech model : "; [ -d "$VOSK_MODEL" ] && echo "present" || echo "not downloaded"
+    echo -n "AI engine    : "; curl -fsS http://127.0.0.1:11434/api/tags >/dev/null 2>&1 && echo "running" || echo "stopped"
+    echo -n "Listening    : "; pgrep -f "$ENGINE" >/dev/null && echo "yes" || echo "no" ;;
+  help|-h|--help) sed -n '3,20p' "$0" | sed 's/^#\s\{0,1\}//' ;;
+  *) red "unknown command: $1"; sed -n '3,20p' "$0" | sed 's/^#\s\{0,1\}//'; exit 1 ;;
+esac

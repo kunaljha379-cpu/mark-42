@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=MARK 42 HUD – Restart
+Comment=Restart the desktop system monitor
+Exec=/usr/local/bin/mark42-conky
+Icon=mark42
+Categories=System;Monitor;

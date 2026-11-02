@@ -1,0 +1,16 @@
+#!/bin/sh
+# MARK 42 root commands
+#   mark <command>     run one command as root          (same as: sudo <command>)
+#   mark 42 | mark42   open a full root shell           (same as: sudo -i)
+#   mark -u <user> ... any sudo option works too
+if [ "$#" -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+  printf '\033[1;34mMARK 42 root access\033[0m\n'
+  printf '  mark <command>    run a command as root   e.g.  mark apt update\n'
+  printf '  mark42            full root shell (type exit to leave)\n'
+  printf '  sudo still works exactly the same.\n'
+  exit 0
+fi
+if [ "$1" = "42" ] && [ "$#" -eq 1 ]; then
+  exec /usr/local/bin/mark42
+fi
+exec sudo "$@"

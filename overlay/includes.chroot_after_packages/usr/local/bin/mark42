@@ -1,0 +1,15 @@
+#!/bin/sh
+# MARK 42 full root shell (same as: sudo -i)
+if [ "$(id -u)" = 0 ]; then
+  echo "Already in full root mode."; exit 0
+fi
+printf '\033[1;31m'
+cat <<'B'
+  ┌────────────────────────────────────────────┐
+  │   ◉  MARK 42  ::  FULL ROOT ACCESS          │
+  │      every command now runs as root         │
+  │      type  exit  to power down root mode    │
+  └────────────────────────────────────────────┘
+B
+printf '\033[0m'
+exec sudo -i "$@"

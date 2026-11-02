@@ -1,0 +1,11 @@
+#!/bin/bash
+# Install Steam from Flathub (bundles its own 32-bit libraries, works on any MARK 42 PC)
+set -e
+printf '\033[1;34m[MARK 42] Installing Steam (about 1 GB download)...\033[0m\n'
+sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+sudo flatpak install -y --noninteractive flathub com.valvesoftware.Steam
+# hide this installer entry once Steam is installed
+mkdir -p "$HOME/.local/share/applications"
+printf '[Desktop Entry]\nType=Application\nName=Install Steam\nHidden=true\n' \
+  > "$HOME/.local/share/applications/mark42-install-steam.desktop"
+printf '\033[1;34m[MARK 42] Steam installed. Find it in the menu under Games.\033[0m\n'

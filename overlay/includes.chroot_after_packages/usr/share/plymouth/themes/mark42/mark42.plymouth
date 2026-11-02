@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=MARK 42
+Description=MARK 42 clean blue and white arc reactor boot animation
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/mark42
+ScriptFile=/usr/share/plymouth/themes/mark42/mark42.script

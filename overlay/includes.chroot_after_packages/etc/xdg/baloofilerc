@@ -1,0 +1,4 @@
+# MARK 42: file indexing off by default (heavy CPU/disk, slow on a live USB).
+# Turn on in System Settings > Search > File Search.
+[Basic Settings]
+Indexing-Enabled=false
